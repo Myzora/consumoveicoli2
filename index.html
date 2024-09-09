@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consumo Veicoli</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        label {
+            margin-right: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 10px;
+            text-align: center;
+        }
+        button {
+            margin: 5px;
+            padding: 10px;
+        }
+        .red { background-color: red; color: white; }
+        .green { background-color: green; color: white; }
+    </style>
+</head>
+<body>
+
+<h1>Consumo Veicoli</h1>
+
+<!-- Input Section -->
+<div>
+    <label for="kmAttuali">KM Attuali:</label>
+    <input type="number" id="kmAttuali" required><br><br>
+
+    <label for="importo">Importo:</label>
+    <input type="number" id="importo" step="0.01" required><br><br>
+
+    <label for="prezzoLitro">€/Litro:</label>
+    <input type="number" id="prezzoLitro" step="0.001" required><br><br>
+
+    <label for="data">Data:</label>
+    <input type="date" id="data" required>
+    <label for="ora">Ora:</label>
+    <input type="time" id="ora" required><br><br>
+
+    <!-- Buttons for Vehicle -->
+    <button onclick="aggiungiRecord('Auto')">Auto</button>
+    <button onclick="aggiungiRecord('Scooter')">Scooter</button><br><br>
+</div>
+
+<!-- Summary Section -->
+<h2>Riepilogo</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Veicolo</th>
+            <th>Ultimi KM</th>
+            <th>Somma Importi</th>
+            <th>Somma Litri</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Auto</td>
+            <td id="ultimoKmAuto">-</td>
+            <td id="sommaImportiAuto">0.00</td>
+            <td id="sommaLitriAuto">0.00</td>
+        </tr>
+        <tr>
+            <td>Scooter</td>
+            <td id="ultimoKmScooter">-</td>
+            <td id="sommaImportiScooter">0.00</td>
+            <td id="sommaLitriScooter">0.00</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Filter Buttons -->
+<h2>Filtri</h2>
+<button class="red" onclick="filtroVeicolo('Auto')">Auto</button>
+<button class="red" onclick="filtroVeicolo('Scooter')">Scooter</button>
+<button class="green" onclick="filtroVeicolo('Tutti')">Tutti</button><br><br>
+
+<button class="red" onclick="cancellaTutto()">Cancella Tutto</button>
+
+<!-- Records Table -->
+<h2>Storico</h2>
+<table id="tabellaRecords">
+    <thead>
+        <tr>
+            <th>Veicolo</th>
+            <th>Km Attuali</th>
+            <th>Importo</th>
+            <th>Data</th>
+            <th>Ora</th>
+            <th>Litri</th>
+            <th>€/Litro</th>
+            <th>Km Percorsi</th>
+            <th>Km/Litro</th>
+            <th>Cancella</th>
+        </tr>
+    </thead>
+    <tbody id="tbodyRecords"></tbody>
+</table>
+
+<script>
+    let records = [];
+    let filtro = 'Tutti';
+
+    function aggiornaRiepilogo(veicolo) {
+        const veicoloRecords = records.filter(r => r.veicolo === veicolo);
+        const ultimoKm = veicoloRecords.length ? veicoloRecords[veicoloRecords.length - 1].kmAttuali : '-';
+        const sommaImporti = veicoloRecords.reduce((acc, r) => acc + r.importo, 0).toFixed(2);
+        const sommaLitri = veicoloRecords.reduce((acc, r) => acc + r.litri, 0).toFixed(2);
+
+        document.getElementById(`ultimoKm${veicolo}`).textContent = ultimoKm;
+        document.getElementById(`sommaImporti${veicolo}`).textContent = sommaImporti;
+        document.getElementById(`sommaLitri${veicolo}`).textContent = sommaLitri;
+    }
+
+    function aggiungiRecord(veicolo) {
+        const kmAttuali = parseFloat(document.getElementById("kmAttuali").value);
+        const importo = parseFloat(document.getElementById("importo").value);
+        const prezzoLitro = parseFloat(document.getElementById("prezzoLitro").value);
+        const data = document.getElementById("data").value;
+        const ora = document.getElementById("ora").value;
+        const litri = (importo / prezzoLitro).toFixed(2);
+        
+        const ultimoRecord = records.filter(r => r.veicolo === veicolo).slice(-1)[0];
+        const kmPercorsi = ultimoRecord ? (kmAttuali - ultimoRecord.kmAttuali).toFixed(2) : 0;
+        const kmLitro = kmPercorsi > 0 ? (kmPercorsi / litri).toFixed(2) : 0;
+
+        const nuovoRecord = {
+            veicolo, kmAttuali, importo, data, ora, litri: parseFloat(litri), prezzoLitro: prezzoLitro.toFixed(3), kmPercorsi, kmLitro
+        };
+
+        records.push(nuovoRecord);
+        aggiornaTabella();
+        aggiornaRiepilogo(veicolo);
+    }
+
+    function aggiornaTabella() {
+        const tbody = document.getElementById("tbodyRecords");
+        tbody.innerHTML = '';
+
+        records.filter(r => filtro === 'Tutti' || r.veicolo === filtro).forEach((r, index) => {
+            const row = `<tr>
+                <td>${r.veicolo}</td>
+                <td>${r.kmAttuali}</td>
+                <td>${r.importo.toFixed(2)}</td>
+                <td>${r.data}</td>
+                <td>${r.ora}</td>
+                <td>${r.litri.toFixed(2)}</td>
+                <td>${r.prezzoLitro}</td>
+                <td>${r.kmPercorsi}</td>
+                <td>${r.kmLitro}</td>
+                <td><button onclick="cancellaRecord(${index})">Cancella</button></td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function cancellaRecord(index) {
+        if (confirm("Vuoi davvero cancellare questo record?")) {
+            const veicolo = records[index].veicolo;
+            records.splice(index, 1);
+            aggiornaTabella();
+            aggiornaRiepilogo(veicolo);
+        }
+    }
+
+    function filtroVeicolo(veicolo) {
+        filtro = veicolo;
+        aggiornaTabella();
+    }
+
+    function cancellaTutto() {
+        if (confirm("Sei sicuro di voler cancellare tutto?")) {
+            records = [];
+            aggiornaTabella();
+            aggiornaRiepilogo('Auto');
+            aggiornaRiepilogo('Scooter');
+        }
+    }
+</script>
+
+</body>
+</html>
